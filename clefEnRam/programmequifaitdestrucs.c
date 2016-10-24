@@ -29,8 +29,10 @@ void show_card(s_card* c);
 void addNewEntry(int file, unsigned char* key);
 void initFile(int file, unsigned char* key);
 void printFile(int file, unsigned char* key);
-
+void showMenu(void);
+void applyChoice(int choice);
 int main(int argc, char* argv []){
+	int choice;
 	if(argc != 3){
 		fprintf(stderr,"Veuillez entrer les deux clefs\n");
 		exit(EXIT_FAILURE);
@@ -41,11 +43,16 @@ int main(int argc, char* argv []){
 	keyFile = fopen("./superclef",  "r");
 	unsigned char* key = malloc(16*sizeof(char));
 	unsigned char* kk = malloc(16*sizeof(char));
+	showMenu();
+	while(scanf("%d",&choice) != 1 && choice != 6) {
+		applyChoice();
+		showMenu();
+	}
 	generateKKFrom(argv[1],argv[2],kk);
 	/* Test de l'exitence de la clef */
 	if (keyFile == NULL){
 		/* Si la clef n'existe pas, on la génère et on la stocke sous forme chiffrée */
-    	generateKey(key);
+	    	generateKey(key);
 		storeKey(key,kk);
 	} else {
 		/* Si elle existe, on la récupère et on la déchiffre */
@@ -62,7 +69,22 @@ int main(int argc, char* argv []){
 	exit(EXIT_SUCCESS);
 } 
 
+void applyChoice(int choice) {
+	if(choice == 1 && keyFile == NULL) {
+		generateKey(key);
+		storeKey(key,kk);	
+	} else if(choice == 2) {
+		retreiveKey(key,kk);
+	}
 
+}
+
+void showMenu(void) {
+	printf("Choissisez votre commande :\n");
+	printf("1) Créer nouvelle clé chiffrée \n");
+	printf("2) Récupérer et déchiffrer la clé\n");
+	printf("6) Quitter \n"); 
+} 
 
 /* Génère un tableau de 256 bits aléatoires et le stocke dans dest */
 void generateKey(unsigned char* dest){
