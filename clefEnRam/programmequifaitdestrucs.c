@@ -41,6 +41,7 @@ int main(int argc, char* argv []){
 	/* Demarrage du prompt */
 	char buffer [BUFFER_SIZE+1];
 	char** command;
+   int n;
 	/* Initialisation des commandes */
 	s_cmd cmd_list[CMD_COUNT] = {
 		{"add", &cmd_add},
@@ -51,7 +52,6 @@ int main(int argc, char* argv []){
 	while(1) {	
 		printf("$> ");
 		fflush(stdout);
-		int n;
 		if((n=read(0,buffer, BUFFER_SIZE))==-1){
 			fprintf(stderr,"Error while reading command");
 			memset(key,0x00,KEY_LENGTH);
@@ -128,8 +128,7 @@ void retreiveKey(unsigned char* key, unsigned char* decryptKey){
 
 
 
-char **split(const char *str, char sep)
-{
+char **split(const char *str, char sep){
     char **array;
     unsigned int start = 0, stop, toks = 0, t;
     token *tokens = malloc((strlen(str) + 1) * sizeof(token));
@@ -288,11 +287,6 @@ void execute(s_cmd* cmd_list,char** command, int fichier,const unsigned char* ke
 	printf("Mauvaise commande\n");
 	showMenu();
 }
-
-
-
-
-
 
 /* Commande exit */
 void cmd_exit(char** args,int fichier, const unsigned char* key){

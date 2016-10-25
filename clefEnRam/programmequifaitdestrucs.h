@@ -21,10 +21,10 @@ typedef struct cmd {
 	void (*function) (char** args,int fichier, const unsigned char* key);
 } s_cmd;
 
-typedef struct {
+typedef struct token {
     const char *start;
     size_t len;
-} token;
+} s_token;
 
 s_cmd cmd_list[CMD_COUNT];
 
