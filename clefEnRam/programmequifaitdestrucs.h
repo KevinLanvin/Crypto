@@ -11,14 +11,14 @@
 #define CMD_COUNT 4 
 
 typedef struct card {
-	char idCard[CARD_ID_LENGTH][CARD_ID_SEGMENT];
-	char name[CARD_NAME_LENGTH];	
+	unsigned char idCard[CARD_ID_SEGMENT][CARD_ID_SEGMENT];
+	unsigned char name[CARD_NAME_LENGTH];	
 	int pin;
 } s_card;
 
-typedef struct command {
+typedef struct cmd {
 	char name [COMMAND_LENGTH];
-	(void*) function (char** args);
+	void (*function) (char** args,int fichier, const unsigned char* key);
 } s_cmd;
 
 typedef struct {
@@ -37,16 +37,16 @@ char **split(const char *str, char sep);
 
 s_card init_card(int* card, int secret_pin, char* name); 
 void show_card(s_card* c);
-int compareCardsId(char** id1,char** id2)
+int compareCardsId(s_card* card,char** id);
 
 
-void addNewEntry(int file, unsigned char* key, s_card* card);
+void addNewEntry(int file, const unsigned char* key, const s_card* card);
 void findEntry(int file, const unsigned char* key, char** id);
-void printFile(int file, unsigned char* key);
+void printFile(int file, const unsigned char* key);
 
 void showMenu();
 void exitProgram(unsigned char* key, int file);
-void execute(char** command, int fichier,const unsigned char* key);
+void execute(s_cmd* cmd_list,char** command, int fichier,const unsigned char* key);
 
 void cmd_add(char** args,int fichier, const unsigned char* key);
 void cmd_print(char** args,int fichier, const unsigned char* key);

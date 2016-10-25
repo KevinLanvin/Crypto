@@ -9,9 +9,7 @@
 #include "programmequifaitdestrucs.h"
 
 
-
 int main(int argc, char* argv []){
-	int choice;
 	if(argc != 3){
 		fprintf(stderr,"Veuillez entrer les deux clefs\n");
 		exit(EXIT_FAILURE);
@@ -22,7 +20,7 @@ int main(int argc, char* argv []){
 	keyFile = fopen("./superclef",  "r");
 	unsigned char* key = malloc(KEY_LENGTH*sizeof(char));
 	unsigned char* kk = malloc(KEY_LENGTH*sizeof(char));	
-	generateKKFrom(argv[1],argv[2],kk);
+	generateKKFrom((unsigned char*)argv[1],(unsigned char*)argv[2],kk);
 	/* Test de l'existence de la clef */
 	if (keyFile == NULL){
 		/* Si la clef n'existe pas, on la génère et on la stocke sous forme chiffrée */
@@ -32,31 +30,35 @@ int main(int argc, char* argv []){
 		/* Si elle existe, on la récupère et on la déchiffre */
 		retreiveKey(key,kk);
 	}
-	fclose(keyFile);
-	memset(kk,0x00,KEY_SIZE);
+	if(keyFile)
+		fclose(keyFile);
+	memset(kk,0x00,KEY_LENGTH);
 	free(kk);
 
 	/* Initialisation du fichier de cartes bleues */
-	int fichier = open("fichierTopSecret", O_RDWR | O_CREAT);
+	int fichier = open("fichierTopSecret", O_RDWR | O_CREAT, S_IRWXU);
 	
 	/* Demarrage du prompt */
 	char buffer [BUFFER_SIZE+1];
 	char** command;
 	/* Initialisation des commandes */
 	s_cmd cmd_list[CMD_COUNT] = {
-		{"add", cmd_add},
-  		{"print", cmd_print},
-  		{"find", cmd_find},
-		{"exit", cmd_exit]};
-	while(1) {
-		showMenu();
+		{"add", &cmd_add},
+  		{"print\n", &cmd_print},
+  		{"find", &cmd_find},
+		{"exit\n", &cmd_exit}};
+	showMenu();	
+	while(1) {	
+		printf("$> ");
+		fflush(stdout);
+		int n;
 		if((n=read(0,buffer, BUFFER_SIZE))==-1){
 			fprintf(stderr,"Error while reading command");
 			exit(EXIT_FAILURE);
 		}
 		buffer[n]='\0';
 		command=split(buffer,' ');
-		execute(command,fichier,key);
+		execute(cmd_list,command,fichier,key);
 	}
 	close(fichier);
 	exit(EXIT_SUCCESS);
@@ -75,7 +77,7 @@ void generateKey(unsigned char* dest){
 
 /* xor de k1 et k2 stocké dans dest */
 void generateKKFrom(unsigned char* k1, unsigned char* k2, unsigned char* dest){
-	if(strlen(k1)!=KEY_LENGTH || strlen(k2)!=KEY_LENGTH){
+	if(strlen((char*)k1)!=KEY_LENGTH || strlen((char*)k2)!=KEY_LENGTH){
 		fprintf(stderr,"Taille des clefs invalide");
 		exit(EXIT_FAILURE);
 	}
@@ -169,22 +171,24 @@ s_card init_card(int* id_card, int secret_pin, char* name) {
 
 /* Affiche une carte */
 void show_card(s_card* c) {
-	int i=0;
-	printf("Id carte : ");
-	for(i; i < 4 ; ++i){
-		printf("%d",(c->idCard[i]));
+	int i;
+	printf("Card id: ");
+	for(i=0; i < CARD_ID_SEGMENT ; ++i){
+		for(int j=0; j< CARD_ID_SEGMENT; ++j)
+			printf("%c",(c->idCard[i][j]));
 		if(i < 3)
 			printf("-");
 	}
-	printf("\tPropriétaire : %s \n",c->name);
-	printf("\tNumero secret : %d \n",c->pin);
+	printf("\tOwner: %s\tPin: %d\n",c->name,c->pin);
 }
 
 /* Compare les id */
-int compareCardsId(char** id1,char** id2){
-	for(int i=0; i<CARD_ID_SEGMENT;++i)
-		if(c=strcmp(id1,id2)!=0)
+int compareCardsId(s_card* card,char** id){
+	int c;
+	for(int i=0; i<CARD_ID_SEGMENT;++i){
+		if((c=strncmp((const char*)(card->idCard[i]),id[i],CARD_ID_SEGMENT))!=0)
 			return c;
+	}
 	return 0;
 }
 
@@ -194,11 +198,11 @@ int compareCardsId(char** id1,char** id2){
 
 
 /* Ajoute une card dans le fichier */
-void addNewEntry(int file, const unsigned char* key,const s_card* card){
+void addNewEntry(int file, const unsigned char* key, const s_card* card){
 	unsigned char enc_out [sizeof(s_card)];
 	unsigned char enc_in [sizeof(s_card)];
 	unsigned char iv [AES_BLOCK_SIZE];
-	memcpy(enc_in,&card,sizeof(s_card));
+	memcpy(enc_in,card,sizeof(s_card));
 	int pos=lseek(file,-16,SEEK_END);
 	if(pos<0)
 		memset(iv, 0x00, AES_BLOCK_SIZE);
@@ -218,15 +222,17 @@ void findEntry(int file, const unsigned char* key, char** id){
 	memset(iv, 0x00, AES_BLOCK_SIZE);
 	AES_KEY dec_key;
 	AES_set_decrypt_key(key,KEY_LENGTH*8, &dec_key);
-	unsigned char current_block[AES_BLOCK_SIZE];
-	unsigned char dec_out[AES_BLOCK_SIZE];
+	unsigned char current_block[sizeof(s_card)];
+	unsigned char dec_out[sizeof(s_card)];
 	int c;
 	lseek(file,0,SEEK_SET);
-	while(c=read(file,current_block,AES_BLOCK_SIZE) != 0){
-		AES_cbc_encrypt(current_block,dec_out,AES_BLOCK_SIZE, &dec_key, iv, AES_DECRYPT);
-		memcpy(card,dec_out,sizeof(s_card));
-		if(int c=compareCardsId(card.idCard,id)==0)
+	while((c=read(file,current_block,sizeof(s_card))) != 0){
+		AES_cbc_encrypt(current_block,dec_out,sizeof(s_card), &dec_key, iv, AES_DECRYPT);
+		memcpy(&card,dec_out,sizeof(s_card));
+		if((c=compareCardsId(&card,id))==0){
 			show_card(&card);
+			return;
+		}
 	}
 	printf("Card id not found\n");
 }
@@ -237,13 +243,15 @@ void printFile(int file,const unsigned char* key){
 	memset(iv, 0x00, AES_BLOCK_SIZE);
 	AES_KEY dec_key;
 	AES_set_decrypt_key(key,KEY_LENGTH*8, &dec_key);
-	unsigned char current_block[AES_BLOCK_SIZE];
-	unsigned char dec_out[AES_BLOCK_SIZE];
+	unsigned char current_block[sizeof(s_card)];
+	unsigned char dec_out[sizeof(s_card)];
+	s_card card;
 	int c;
 	lseek(file,0,SEEK_SET);
-	while(c=read(file,current_block,AES_BLOCK_SIZE) != 0){
-		AES_cbc_encrypt(current_block,dec_out,AES_BLOCK_SIZE, &dec_key, iv, AES_DECRYPT);
-		printf("%s\n",dec_out);
+	while((c=read(file,current_block,sizeof(s_card))) > 0){
+		AES_cbc_encrypt(current_block,dec_out,sizeof(s_card), &dec_key, iv, AES_DECRYPT);
+		memcpy(&card,dec_out,sizeof(card));
+		show_card(&card);
 	}
 }
 
@@ -254,29 +262,28 @@ void printFile(int file,const unsigned char* key){
 
 /* Affiche le menu de commandes */
 void showMenu() {
-	printf("Commandes :\n\tfind [card-id]\n\tadd [card-id] [name] [pin]\n\tprint");
-	printf("$>");
-	fflush(stdout);
+	printf("Commandes :\n\tfind [card-id]\n\tadd [card-id] [name] [pin]\n\tprint\n");
 } 
 
 /* Quitte proprement volontairement */
 void exitProgram(unsigned char* key, int file){
-	memset(key,0x00,KEY_SIZE);
+	memset(key,0x00,KEY_LENGTH);
 	free(key);
 	close(file);
 	exit(EXIT_SUCCESS);
 }
 
 /* Execute une commande */
-void execute(char** command, int fichier,const unsigned char* key){
+void execute(s_cmd* cmd_list,char** command, int fichier,const unsigned char* key){
 	int c;
 	for(int i=0;i<CMD_COUNT;++i){
-		if(c=strcmp(command[0],cmd_list[i]->name)==0){
-			cmd_list[i]->function(command,fichier,key);
+		if((c=strcmp(command[0],cmd_list[i].name))==0){
+			cmd_list[i].function(command,fichier,key);
 			return;
 		}
 	}
 	printf("Mauvaise commande\n");
+	showMenu();
 }
 
 
@@ -286,7 +293,7 @@ void execute(char** command, int fichier,const unsigned char* key){
 
 /* Commande exit */
 void cmd_exit(char** args,int fichier, const unsigned char* key){
-	exitProgram(key);
+	exitProgram(key,fichier);
 }
 /* Commande print */
 void cmd_print(char** args, int fichier, const unsigned char* key){
@@ -295,18 +302,16 @@ void cmd_print(char** args, int fichier, const unsigned char* key){
 /* Commande add */
 void cmd_add(char ** args, int fichier, const unsigned char* key){
 	s_card card;
-	char* card_id [CARD_ID_SEGMENT];
 	for(int i=0; i<CARD_ID_SEGMENT; ++i)
-		card_id[i]=args[i];
-	char* name=args[CARD_ID_SEGMENT+1];
-	int pin=atoi(args[CARD_ID_SEGMENT+2];
-	card={card_id,name,pin};
+		memcpy(card.idCard[i],args[i+1],CARD_ID_SEGMENT*sizeof(char));
+	memcpy(card.name,args[CARD_ID_SEGMENT+1],CARD_NAME_LENGTH*sizeof(char));
+	card.pin=atoi(args[CARD_ID_SEGMENT+2]);
 	addNewEntry(fichier,key,&card);
 }
 /* Commande find */
 void cmd_find(char ** args, int fichier, const unsigned char* key){
 	char* card_id [CARD_ID_SEGMENT];
 	for(int i=0; i<CARD_ID_SEGMENT; ++i)
-		card_id[i]=args[i];
+		card_id[i]=args[i+1];
 	findEntry(fichier,key,card_id);
 }
