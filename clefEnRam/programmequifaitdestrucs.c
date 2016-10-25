@@ -54,6 +54,9 @@ int main(int argc, char* argv []){
 		int n;
 		if((n=read(0,buffer, BUFFER_SIZE))==-1){
 			fprintf(stderr,"Error while reading command");
+			memset(key,0x00,KEY_LENGTH);
+			free(key);
+			close(fichier);
 			exit(EXIT_FAILURE);
 		}
 		buffer[n]='\0';
