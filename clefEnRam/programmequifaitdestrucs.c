@@ -23,7 +23,7 @@ int main(int argc, char* argv []){
 	unsigned char* key = malloc(KEY_LENGTH*sizeof(char));
 	unsigned char* kk = malloc(KEY_LENGTH*sizeof(char));	
 	generateKKFrom(argv[1],argv[2],kk);
-	/* Test de l'exitence de la clef */
+	/* Test de l'existence de la clef */
 	if (keyFile == NULL){
 		/* Si la clef n'existe pas, on la génère et on la stocke sous forme chiffrée */
 	    generateKey(key);
@@ -156,6 +156,8 @@ char **split(const char *str, char sep)
 
 
 
+
+
 /* Initialise une carte */
 s_card init_card(int* id_card, int secret_pin, char* name) {
 	struct card mycard;
@@ -185,6 +187,8 @@ int compareCardsId(char** id1,char** id2){
 			return c;
 	return 0;
 }
+
+
 
 
 
@@ -227,10 +231,7 @@ void findEntry(int file, const unsigned char* key, char** id){
 	printf("Card id not found\n");
 }
 
-
-
-
-
+/* Affiche le fichier */
 void printFile(int file,const unsigned char* key){
 	unsigned char iv[AES_BLOCK_SIZE];
 	memset(iv, 0x00, AES_BLOCK_SIZE);
@@ -249,13 +250,16 @@ void printFile(int file,const unsigned char* key){
 
 
 
+
+
+/* Affiche le menu de commandes */
 void showMenu() {
 	printf("Commandes :\n\tfind [card-id]\n\tadd [card-id] [name] [pin]\n\tprint");
 	printf("$>");
 	fflush(stdout);
 } 
 
-
+/* Quitte proprement volontairement */
 void exitProgram(unsigned char* key, int file){
 	memset(key,0x00,KEY_SIZE);
 	free(key);
@@ -263,6 +267,7 @@ void exitProgram(unsigned char* key, int file){
 	exit(EXIT_SUCCESS);
 }
 
+/* Execute une commande */
 void execute(char** command, int fichier,const unsigned char* key){
 	int c;
 	for(int i=0;i<CMD_COUNT;++i){
@@ -277,14 +282,17 @@ void execute(char** command, int fichier,const unsigned char* key){
 
 
 
+
+
+/* Commande exit */
 void cmd_exit(char** args,int fichier, const unsigned char* key){
 	exitProgram(key);
 }
-
+/* Commande print */
 void cmd_print(char** args, int fichier, const unsigned char* key){
 	printFile(fichier, key);
 }
-
+/* Commande add */
 void cmd_add(char ** args, int fichier, const unsigned char* key){
 	s_card card;
 	char* card_id [CARD_ID_SEGMENT];
@@ -295,5 +303,10 @@ void cmd_add(char ** args, int fichier, const unsigned char* key){
 	card={card_id,name,pin};
 	addNewEntry(fichier,key,&card);
 }
-
-void cmd_find
+/* Commande find */
+void cmd_find(char ** args, int fichier, const unsigned char* key){
+	char* card_id [CARD_ID_SEGMENT];
+	for(int i=0; i<CARD_ID_SEGMENT; ++i)
+		card_id[i]=args[i];
+	findEntry(fichier,key,card_id);
+}

@@ -48,9 +48,9 @@ void showMenu();
 void exitProgram(unsigned char* key, int file);
 void execute(char** command, int fichier,const unsigned char* key);
 
-void cmd_add(char** args);
-void cmd_print(char** args);
-void cmd_find(char** args);
-void cmd_exit(char** args);
+void cmd_add(char** args,int fichier, const unsigned char* key);
+void cmd_print(char** args,int fichier, const unsigned char* key);
+void cmd_find(char** args,int fichier, const unsigned char* key);
+void cmd_exit(char** args,int fichier, const unsigned char* key);
 
 #endif
