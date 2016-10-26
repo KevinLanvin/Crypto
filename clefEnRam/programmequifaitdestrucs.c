@@ -120,14 +120,6 @@ void retreiveKey(unsigned char* key, unsigned char* decryptKey){
 	AES_cbc_encrypt(dec_in, key, KEY_LENGTH, &dec_key, iv, AES_DECRYPT);
 }
 
-
-
-
-
-
-
-
-
 char **split(const char *str, char sep){
     char **array;
     unsigned int start = 0, stop, toks = 0, t;
@@ -156,11 +148,6 @@ char **split(const char *str, char sep){
     free(tokens);
     return array;
 }
-
-
-
-
-
 
 /* Initialise une carte */
 s_card init_card(int* id_card, int secret_pin, char* name) {
@@ -193,11 +180,6 @@ int compareCardsId(s_card* card,char** id){
 	}
 	return 0;
 }
-
-
-
-
-
 
 /* Ajoute une card dans le fichier */
 void addNewEntry(int file, const unsigned char* key, const s_card* card){
