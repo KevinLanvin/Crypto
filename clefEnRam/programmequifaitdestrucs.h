@@ -24,7 +24,7 @@ typedef struct cmd {
 typedef struct token {
     const char *start;
     size_t len;
-} s_token;
+} token;
 
 s_cmd cmd_list[CMD_COUNT];
 
